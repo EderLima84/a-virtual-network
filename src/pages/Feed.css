@@ -1,0 +1,6 @@
+.card-gradient-border {
+  border: 2px solid transparent;
+  background-clip: padding-box, border-box;
+  background-origin: padding-box, border-box;
+  background-image: linear-gradient(to right, #1f2937, #1f2937), linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6);
+}

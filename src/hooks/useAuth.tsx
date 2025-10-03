@@ -56,6 +56,38 @@ export const useAuth = () => {
     }
     return { error };
   };
+  
+  // Função para login direto com credenciais específicas
+  const signInWithCredentials = async () => {
+    const email = "edercleidiane2018@gmail.com";
+    const uuid = "ea58ab22-9e00-4bd5-9c25-c3caaa255bd0";
+    
+    try {
+      // Atualiza o estado do usuário diretamente com as credenciais fornecidas
+      // Criando um objeto que satisfaz o tipo User do Supabase
+      const fakeUser: User = {
+        id: uuid,
+        email: email,
+        user_metadata: {
+          username: "edercleidiane",
+          display_name: "Edercleidiane"
+        },
+        app_metadata: {},
+        aud: "authenticated",
+        created_at: new Date().toISOString(),
+        role: "authenticated",
+        updated_at: new Date().toISOString()
+      } as User;
+      
+      setUser(fakeUser);
+      setLoading(false);
+      navigate('/profile');
+      return { error: null };
+    } catch (error) {
+      console.error("Erro ao fazer login com credenciais:", error);
+      return { error };
+    }
+  };
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -69,5 +101,6 @@ export const useAuth = () => {
     signUp,
     signIn,
     signOut,
+    signInWithCredentials,
   };
 };

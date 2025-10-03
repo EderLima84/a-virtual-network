@@ -44,9 +44,7 @@ const Landing = () => {
       <div className="container mx-auto px-4 pt-20 pb-16">
         <div className="text-center space-y-6 animate-fade-in">
           <div className="inline-block">
-            <h1 className="text-6xl md:text-8xl font-bold bg-gradient-orkut bg-clip-text text-transparent animate-pulse-glow">
-              Orkadia
-            </h1>
+            <img src="/Orkadia logo (2).jpg" alt="Orkadia Logo" className="mx-auto mb-4 w-32 h-32 rounded-full" />
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
             Bem-vindo à cidade virtual onde nostalgia encontra inovação

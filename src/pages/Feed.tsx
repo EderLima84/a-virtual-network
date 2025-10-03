@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import "./Feed.css";
 import { 
   TrendingUp, 
   Cake, 
@@ -15,12 +16,25 @@ import {
   Sparkles, 
   MessageCircle,
   Send,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Megaphone
 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 
 type Post = Tables<"posts"> & {
   profiles: Tables<"profiles">;
+};
+
+type Announcement = Tables<"announcements">;
+
+type Ranking = Tables<"weekly_rankings"> & {
+  profiles: Tables<"profiles">;
+};
+
+type PresenceState = {
+  user_id: string;
+  display_name: string;
+  username: string;
 };
 
 const emotes = [
@@ -34,13 +48,60 @@ const emotes = [
 const Feed = () => {
   const { user, loading } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
+  const [ranking, setRanking] = useState<Ranking[]>([]);
+  const [onlineUsers, setOnlineUsers] = useState<PresenceState[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [newPostContent, setNewPostContent] = useState("");
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [loadingRanking, setLoadingRanking] = useState(true);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (user) {
       loadPosts();
+      loadRanking();
+      loadAnnouncements();
+
+      const channel = supabase.channel("praça-central", {
+        config: {
+          presence: {
+            key: user.id,
+          },
+        },
+      });
+
+      channel
+        .on("presence", { event: "sync" }, () => {
+          const newState = channel.presenceState<PresenceState>();
+          const users = Object.values(newState).flat();
+          setOnlineUsers(users);
+        })
+        .on("presence", { event: "join" }, ({ key, newPresences }) => {
+          console.log("join", key, newPresences);
+        })
+        .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
+          console.log("leave", key, leftPresences);
+        })
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("display_name, username")
+              .eq("id", user.id)
+              .single();
+
+            await channel.track({ 
+              user_id: user.id, 
+              display_name: profile?.display_name,
+              username: profile?.username,
+            });
+          }
+        });
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [user]);
 
@@ -62,6 +123,49 @@ const Feed = () => {
       toast.error("Erro ao carregar posts");
     } finally {
       setLoadingPosts(false);
+    }
+  };
+
+  const loadRanking = async () => {
+    try {
+      // First, call the function to calculate the ranking
+      const { error: rpcError } = await supabase.rpc('calculate_weekly_ranking');
+      if (rpcError) throw rpcError;
+
+      // Then, fetch the results
+      const { data, error } = await supabase
+        .from("weekly_rankings")
+        .select(`
+          *,
+          profiles (*)
+        `)
+        .order("rank", { ascending: true })
+        .limit(10);
+
+      if (error) throw error;
+      setRanking(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar ranking:", error);
+      toast.error("Erro ao carregar ranking");
+    } finally {
+      setLoadingRanking(false);
+    }
+  };
+
+  const loadAnnouncements = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("announcements")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setAnnouncements(data || []);
+    } catch (error) {
+      console.error("Erro ao carregar anúncios:", error);
+      toast.error("Erro ao carregar anúncios");
+    } finally {
+      setLoadingAnnouncements(false);
     }
   };
 
@@ -107,10 +211,45 @@ const Feed = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 py-8">
-      <div className="container mx-auto px-4 max-w-4xl">
-        {/* Coreto Digital */}
-        <Card className="p-6 mb-8 shadow-elevated border-2 border-primary/20">
-          <div className="flex items-center gap-2 mb-4">
+      <div className="container mx-auto px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 space-y-6">
+              <Card className="card-gradient-border">
+                <CardHeader>
+                  <CardTitle>Cidadãos Online</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {onlineUsers.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Ninguém online no momento.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {onlineUsers.map((presence) => (
+                        <li key={presence.user_id}>
+                          <Link to={`/profile/${presence.username}`} className="flex items-center gap-3 hover:bg-primary/10 p-2 rounded-md transition-colors">
+                            <div className="relative">
+                              <div className="w-8 h-8 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold text-sm">
+                                {presence.display_name.charAt(0).toUpperCase()}
+                              </div>
+                              <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-background" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm truncate">{presence.display_name}</p>
+                            </div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </aside>
+
+          <main className="lg:col-span-2">
+            {/* Coreto Digital */}
+            <Card className="p-6 mb-8 shadow-elevated border-2 border-primary/20">
+              <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-bold bg-gradient-orkut bg-clip-text text-transparent">
               Coreto Digital
@@ -226,6 +365,67 @@ const Feed = () => {
               </Card>
             ))
           )}
+        </div>
+          </main>
+
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 space-y-6">
+              <Card className="card-gradient-border">
+                <CardHeader>
+                  <CardTitle>Ranking da Semana</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingRanking ? (
+                    <p className="text-sm text-muted-foreground">Carregando...</p>
+                  ) : ranking.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Ninguém no ranking ainda.</p>
+                  ) : (
+                    <ul className="space-y-3">
+                      {ranking.map((entry, index) => (
+                        <li key={entry.id} className="flex items-center gap-3">
+                          <span className={`font-bold text-lg ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-slate-400' : index === 2 ? 'text-amber-600' : ''}`}>
+                            {index + 1}
+                          </span>
+                          <div className="w-8 h-8 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold text-sm">
+                            {entry.profiles.display_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-semibold text-sm truncate">{entry.profiles.display_name}</p>
+                            <p className="text-xs text-muted-foreground">{entry.score} pontos</p>
+                          </div>
+                          {index === 0 && <Trophy className="w-5 h-5 text-amber-400" />}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="card-gradient-border">
+                <CardHeader>
+                  <CardTitle>Anúncios</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {loadingAnnouncements ? (
+                    <p className="text-sm text-muted-foreground">Carregando...</p>
+                  ) : announcements.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">Nenhum anúncio no momento.</p>
+                  ) : (
+                    <ul className="space-y-4">
+                      {announcements.map((announcement) => (
+                        <li key={announcement.id} className="border-l-4 border-primary pl-4">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Megaphone className="w-4 h-4 text-primary" />
+                            <h4 className="font-semibold text-sm">{announcement.title}</h4>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{announcement.content}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
