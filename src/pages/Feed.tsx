@@ -27,8 +27,9 @@ type Post = Tables<"posts"> & {
 
 type Announcement = Tables<"announcements">;
 
-type Ranking = Tables<"weekly_rankings"> & {
-  profiles: Tables<"profiles">;
+type Ranking = {
+  user_id: string;
+  score: number;
 };
 
 type PresenceState = {
@@ -49,6 +50,7 @@ const Feed = () => {
   const { user, loading } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [ranking, setRanking] = useState<Ranking[]>([]);
+  const [rankingProfiles, setRankingProfiles] = useState<Record<string, Tables<"profiles">>>({});
   const [onlineUsers, setOnlineUsers] = useState<PresenceState[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [newPostContent, setNewPostContent] = useState("");
@@ -128,25 +130,29 @@ const Feed = () => {
 
   const loadRanking = async () => {
     try {
-      // First, call the function to calculate the ranking
-      const { error: rpcError } = await supabase.rpc('calculate_weekly_ranking');
-      if (rpcError) throw rpcError;
-
-      // Then, fetch the results
-      const { data, error } = await supabase
-        .from("weekly_rankings")
-        .select(`
-          *,
-          profiles (*)
-        `)
-        .order("rank", { ascending: true })
-        .limit(10);
-
+      const { data, error } = await supabase.rpc('calculate_weekly_ranking');
+      
       if (error) throw error;
       setRanking(data || []);
+
+      // Load profiles for ranking users
+      if (data && data.length > 0) {
+        const userIds = data.map((r: Ranking) => r.user_id);
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("id", userIds);
+
+        if (!profilesError && profiles) {
+          const profilesMap = profiles.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {} as Record<string, Tables<"profiles">>);
+          setRankingProfiles(profilesMap);
+        }
+      }
     } catch (error) {
       console.error("Erro ao carregar ranking:", error);
-      toast.error("Erro ao carregar ranking");
     } finally {
       setLoadingRanking(false);
     }
@@ -381,21 +387,25 @@ const Feed = () => {
                     <p className="text-sm text-muted-foreground">Ninguém no ranking ainda.</p>
                   ) : (
                     <ul className="space-y-3">
-                      {ranking.map((entry, index) => (
-                        <li key={entry.id} className="flex items-center gap-3">
-                          <span className={`font-bold text-lg ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-slate-400' : index === 2 ? 'text-amber-600' : ''}`}>
-                            {index + 1}
-                          </span>
-                          <div className="w-8 h-8 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold text-sm">
-                            {entry.profiles.display_name.charAt(0).toUpperCase()}
-                          </div>
-                          <div className="flex-1">
-                            <p className="font-semibold text-sm truncate">{entry.profiles.display_name}</p>
-                            <p className="text-xs text-muted-foreground">{entry.score} pontos</p>
-                          </div>
-                          {index === 0 && <Trophy className="w-5 h-5 text-amber-400" />}
-                        </li>
-                      ))}
+                      {ranking.map((entry, index) => {
+                        const profile = rankingProfiles[entry.user_id];
+                        if (!profile) return null;
+                        return (
+                          <li key={entry.user_id} className="flex items-center gap-3">
+                            <span className={`font-bold text-lg ${index === 0 ? 'text-amber-400' : index === 1 ? 'text-slate-400' : index === 2 ? 'text-amber-600' : ''}`}>
+                              {index + 1}
+                            </span>
+                            <div className="w-8 h-8 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold text-sm">
+                              {profile.display_name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-semibold text-sm truncate">{profile.display_name}</p>
+                              <p className="text-xs text-muted-foreground">{entry.score} pontos</p>
+                            </div>
+                            {index === 0 && <Trophy className="w-5 h-5 text-amber-400" />}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </CardContent>

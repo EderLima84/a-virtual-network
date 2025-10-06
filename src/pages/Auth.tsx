@@ -73,7 +73,7 @@ const Auth = () => {
       <Card className="w-full max-w-md shadow-elevated">
         <CardHeader className="text-center space-y-2">
           <div className="flex justify-center mb-4">
-            <img src="/Orkadia logo (2).jpg" alt="Orkadia Logo" className="w-24 h-24 rounded-full" />
+            <img src="/orkadia-logo.jpg" alt="Orkadia Logo" className="w-24 h-24 rounded-full" />
           </div>
           <CardTitle className="text-3xl bg-gradient-orkut bg-clip-text text-transparent">
             {mode === 'login' ? 'Entrar no Orkadia' : 'Criar sua Casa Virtual'}

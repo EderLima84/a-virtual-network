@@ -34,7 +34,7 @@ const Dashboard = () => {
       <header className="bg-card border-b shadow-card sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <img src="/Orkadia logo (2).jpg" alt="Orkadia Logo" className="h-8 w-auto" />
+            <img src="/orkadia-logo.jpg" alt="Orkadia Logo" className="h-8 w-auto" />
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">
                 {user.email}
