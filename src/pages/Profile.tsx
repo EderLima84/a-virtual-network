@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Chrome as Home, MessageSquare, Award, Image as ImageIcon, Music, Trophy, Send, Sparkles, Star, Heart, Gift, CirclePlus as PlusCircle } from "lucide-react";
+import { Chrome as Home, MessageSquare, Award, Image as ImageIcon, Music, Trophy, Send, Sparkles, Star, Heart, Gift, CirclePlus as PlusCircle, Camera, Upload } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 
 type ProfileData = Tables<"profiles"> & {
@@ -33,6 +33,10 @@ const Profile = () => {
   const [achievements, setAchievements] = useState<UserAchievement[]>([]);
   const [newScrap, setNewScrap] = useState("");
   const [loadingData, setLoadingData] = useState(true);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -47,7 +51,7 @@ const Profile = () => {
       // Carregar perfil
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("*, avatar_url")
+        .select("*")
         .eq("id", user.id)
         .single();
 
@@ -135,6 +139,90 @@ const Profile = () => {
     }
   };
 
+  const uploadAvatar = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+
+      setUploadingAvatar(true);
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${user?.id}/${fileName}`;
+
+      // Upload do arquivo
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Atualizar perfil com a nova URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user?.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("✨ Avatar atualizado!");
+      loadProfileData();
+    } catch (error) {
+      console.error('Erro ao fazer upload do avatar:', error);
+      toast.error("Erro ao atualizar avatar");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
+  const uploadCover = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!event.target.files || event.target.files.length === 0) {
+        return;
+      }
+
+      setUploadingCover(true);
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user?.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${user?.id}/${fileName}`;
+
+      // Upload do arquivo
+      const { error: uploadError } = await supabase.storage
+        .from('house-covers')
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      // Obter URL pública
+      const { data: { publicUrl } } = supabase.storage
+        .from('house-covers')
+        .getPublicUrl(filePath);
+
+      // Atualizar perfil com a nova URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ house_background: publicUrl })
+        .eq('id', user?.id);
+
+      if (updateError) throw updateError;
+
+      toast.success("✨ Foto de capa atualizada!");
+      loadProfileData();
+    } catch (error) {
+      console.error('Erro ao fazer upload da capa:', error);
+      toast.error("Erro ao atualizar foto de capa");
+    } finally {
+      setUploadingCover(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -158,23 +246,58 @@ const Profile = () => {
           {/* Imagem de Capa */}
           <div className="h-48 md:h-64 bg-gradient-to-r from-pink-500 via-red-500 to-yellow-500 relative group">
             <img 
-              src={profile?.cover_photo_url || 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?q=80&w=1912&auto=format&fit=crop'} 
+              src={profile?.house_background || 'https://images.unsplash.com/photo-1528459801416-a9e53bbf4e17?q=80&w=1912&auto=format&fit=crop'} 
               alt="Capa da Casa"
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300"></div>
+            <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+              <Button
+                onClick={() => coverInputRef.current?.click()}
+                disabled={uploadingCover}
+                className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 hover:bg-white text-foreground gap-2"
+                size="sm"
+              >
+                <Camera className="w-4 h-4" />
+                {uploadingCover ? "Enviando..." : "Alterar Capa"}
+              </Button>
+              <input
+                ref={coverInputRef}
+                type="file"
+                accept="image/*"
+                onChange={uploadCover}
+                className="hidden"
+              />
+            </div>
           </div>
 
           {/* Conteúdo do Perfil */}
           <div className="p-4 md:p-6 bg-background/80 backdrop-blur-sm">
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 -mt-20 sm:-mt-24 relative z-10">
               {/* Foto de Perfil */}
-              <div className="w-32 h-32 md:w-36 md:h-36 rounded-full border-4 border-background shadow-lg bg-gradient-orkut flex-shrink-0 transform hover:scale-105 transition-transform duration-300">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full rounded-full object-cover" />
-                ) : (
-                  <div className="w-full h-full rounded-full flex items-center justify-center text-white text-5xl font-bold">
-                    {profile?.display_name.charAt(0).toUpperCase()}
+              <div className="relative w-32 h-32 md:w-36 md:h-36 flex-shrink-0 transform hover:scale-105 transition-transform duration-300">
+                <div className="w-full h-full rounded-full border-4 border-background shadow-lg bg-gradient-orkut overflow-hidden group cursor-pointer"
+                     onClick={() => avatarInputRef.current?.click()}>
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt={profile.display_name} className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-white text-5xl font-bold">
+                      {profile?.display_name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Camera className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={uploadAvatar}
+                  className="hidden"
+                />
+                {uploadingAvatar && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
                   </div>
                 )}
               </div>
