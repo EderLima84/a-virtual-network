@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,12 +17,17 @@ import {
   MessageCircle,
   Send,
   Image as ImageIcon,
-  Megaphone
+  Megaphone,
+  Share2,
+  Loader2,
+  X
 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
+import { CommentDialog } from "@/components/CommentDialog";
 
 type Post = Tables<"posts"> & {
   profiles: Tables<"profiles">;
+  user_liked?: boolean;
 };
 
 type Announcement = Tables<"announcements">;
@@ -54,10 +59,15 @@ const Feed = () => {
   const [onlineUsers, setOnlineUsers] = useState<PresenceState[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [newPostContent, setNewPostContent] = useState("");
+  const [newPostImage, setNewPostImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [loadingRanking, setLoadingRanking] = useState(true);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [commentDialogPostId, setCommentDialogPostId] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -109,7 +119,7 @@ const Feed = () => {
 
   const loadPosts = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: postsData, error } = await supabase
         .from("posts")
         .select(`
           *,
@@ -119,7 +129,25 @@ const Feed = () => {
         .limit(20);
 
       if (error) throw error;
-      setPosts(data || []);
+
+      // Check if user liked each post
+      if (user && postsData) {
+        const { data: likesData } = await supabase
+          .from("post_likes")
+          .select("post_id")
+          .eq("user_id", user.id);
+
+        const likedPostIds = new Set(likesData?.map(like => like.post_id) || []);
+        
+        const postsWithLikes = postsData.map(post => ({
+          ...post,
+          user_liked: likedPostIds.has(post.id),
+        }));
+
+        setPosts(postsWithLikes);
+      } else {
+        setPosts(postsData || []);
+      }
     } catch (error) {
       console.error("Erro ao carregar posts:", error);
       toast.error("Erro ao carregar posts");
@@ -175,21 +203,73 @@ const Feed = () => {
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("Imagem muito grande. Máximo 5MB.");
+        return;
+      }
+      setNewPostImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setNewPostImage(null);
+    setImagePreview(null);
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
+  };
+
   const createPost = async () => {
-    if (!newPostContent.trim() || !user) return;
+    if ((!newPostContent.trim() && !newPostImage) || !user) return;
 
     setSubmitting(true);
     try {
+      let imageUrl: string | null = null;
+
+      // Upload image if exists
+      if (newPostImage) {
+        setUploadingImage(true);
+        const fileExt = newPostImage.name.split('.').pop();
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+        
+        const { error: uploadError, data } = await supabase.storage
+          .from('post-images')
+          .upload(fileName, newPostImage);
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('post-images')
+          .getPublicUrl(fileName);
+
+        imageUrl = publicUrl;
+        setUploadingImage(false);
+      }
+
       const { error } = await supabase
         .from("posts")
         .insert({
           user_id: user.id,
-          content: newPostContent.trim(),
+          content: newPostContent.trim() || "",
+          image_url: imageUrl,
         });
 
       if (error) throw error;
 
       setNewPostContent("");
+      setNewPostImage(null);
+      setImagePreview(null);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = "";
+      }
       toast.success("✨ Post criado! +2 pontos de cidadania");
       loadPosts();
     } catch (error) {
@@ -197,7 +277,58 @@ const Feed = () => {
       toast.error("Erro ao criar post");
     } finally {
       setSubmitting(false);
+      setUploadingImage(false);
     }
+  };
+
+  const toggleLike = async (postId: string, currentlyLiked: boolean) => {
+    if (!user) return;
+
+    try {
+      if (currentlyLiked) {
+        // Unlike
+        const { error } = await supabase
+          .from("post_likes")
+          .delete()
+          .eq("post_id", postId)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+      } else {
+        // Like
+        const { error } = await supabase
+          .from("post_likes")
+          .insert({
+            post_id: postId,
+            user_id: user.id,
+          });
+
+        if (error) throw error;
+      }
+
+      // Update local state
+      setPosts(posts.map(post => {
+        if (post.id === postId) {
+          return {
+            ...post,
+            user_liked: !currentlyLiked,
+            likes_count: currentlyLiked 
+              ? (post.likes_count || 1) - 1 
+              : (post.likes_count || 0) + 1,
+          };
+        }
+        return post;
+      }));
+    } catch (error) {
+      console.error("Erro ao curtir post:", error);
+      toast.error("Erro ao curtir post");
+    }
+  };
+
+  const sharePost = (postId: string) => {
+    const url = `${window.location.origin}/feed?post=${postId}`;
+    navigator.clipboard.writeText(url);
+    toast.success("Link copiado para a área de transferência!");
   };
 
   if (loading) {
@@ -295,17 +426,58 @@ const Feed = () => {
             onChange={(e) => setNewPostContent(e.target.value)}
             className="mb-4 min-h-[100px]"
           />
+          
+          {imagePreview && (
+            <div className="relative mb-4">
+              <img 
+                src={imagePreview} 
+                alt="Preview" 
+                className="max-h-64 rounded-lg object-cover w-full"
+              />
+              <Button
+                variant="destructive"
+                size="icon"
+                className="absolute top-2 right-2"
+                onClick={removeImage}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          )}
+
           <div className="flex justify-between items-center">
-            <Button variant="outline" size="sm" disabled>
-              <ImageIcon className="w-4 h-4 mr-2" />
-              Foto
-            </Button>
+            <div className="flex gap-2">
+              <input
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageSelect}
+              />
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => imageInputRef.current?.click()}
+                disabled={uploadingImage}
+              >
+                {uploadingImage ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <ImageIcon className="w-4 h-4 mr-2" />
+                )}
+                Foto
+              </Button>
+            </div>
             <Button
               onClick={createPost}
-              disabled={!newPostContent.trim() || submitting}
+              disabled={(!newPostContent.trim() && !newPostImage) || submitting || uploadingImage}
               className="bg-gradient-orkut hover:opacity-90"
             >
-              <Send className="w-4 h-4 mr-2" />
+              {submitting ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4 mr-2" />
+              )}
               Publicar
             </Button>
           </div>
@@ -328,10 +500,10 @@ const Feed = () => {
             posts.map((post) => (
               <Card key={post.id} className="p-6 shadow-card hover:shadow-elevated transition-shadow">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold flex-shrink-0">
                     {post.profiles.display_name.charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       <h4 className="font-semibold">{post.profiles.display_name}</h4>
                       <span className="text-xs text-muted-foreground">
@@ -342,28 +514,50 @@ const Feed = () => {
                         {new Date(post.created_at!).toLocaleDateString("pt-BR")}
                       </span>
                     </div>
-                    <p className="text-foreground mb-4 whitespace-pre-wrap">{post.content}</p>
                     
-                    {/* Emotes e Interações */}
+                    {post.content && (
+                      <p className="text-foreground mb-4 whitespace-pre-wrap break-words">{post.content}</p>
+                    )}
+                    
+                    {post.image_url && (
+                      <img 
+                        src={post.image_url} 
+                        alt="Post image" 
+                        className="rounded-lg max-h-96 w-full object-cover mb-4"
+                      />
+                    )}
+                    
+                    {/* Interações */}
                     <div className="flex items-center gap-4 pt-4 border-t">
-                      <div className="flex items-center gap-2">
-                        {emotes.slice(0, 3).map((emote, idx) => (
-                          <Button
-                            key={idx}
-                            variant="ghost"
-                            size="sm"
-                            className="hover:scale-110 transition-transform"
-                          >
-                            <emote.icon className={`w-4 h-4 ${emote.color}`} />
-                          </Button>
-                        ))}
-                        <span className="text-sm text-muted-foreground ml-2">
-                          {post.likes_count || 0}
-                        </span>
-                      </div>
-                      <Button variant="ghost" size="sm" className="gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => toggleLike(post.id, post.user_liked || false)}
+                        className={`gap-2 hover:scale-110 transition-transform ${
+                          post.user_liked ? 'text-red-500' : ''
+                        }`}
+                      >
+                        <Heart className={`w-4 h-4 ${post.user_liked ? 'fill-current' : ''}`} />
+                        <span className="text-sm">{post.likes_count || 0}</span>
+                      </Button>
+                      
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="gap-2 hover:scale-110 transition-transform"
+                        onClick={() => setCommentDialogPostId(post.id)}
+                      >
                         <MessageCircle className="w-4 h-4" />
                         <span className="text-sm">{post.comments_count || 0}</span>
+                      </Button>
+
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="gap-2 hover:scale-110 transition-transform"
+                        onClick={() => sharePost(post.id)}
+                      >
+                        <Share2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </div>
@@ -438,6 +632,12 @@ const Feed = () => {
           </aside>
         </div>
       </div>
+
+      <CommentDialog
+        postId={commentDialogPostId || ""}
+        isOpen={!!commentDialogPostId}
+        onClose={() => setCommentDialogPostId(null)}
+      />
     </div>
   );
 };
