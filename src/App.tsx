@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
 import TestConnection from "./pages/TestConnection";
 import Clubs from "./pages/Clubs";
+import Cinema from "./pages/Cinema";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/clubs" element={<Clubs />} />
+          <Route path="/cinema" element={<Cinema />} />
           <Route path="/test-connection" element={<TestConnection />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

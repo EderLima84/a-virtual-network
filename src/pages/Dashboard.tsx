@@ -80,7 +80,7 @@ const Dashboard = () => {
               icon={Film}
               label="Cinema"
               active={activeSection === 'media'}
-              onClick={() => setActiveSection('media')}
+              onClick={() => navigate('/cinema')}
             />
             <CityIcon
               icon={Shield}
