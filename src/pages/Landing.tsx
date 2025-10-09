@@ -44,14 +44,14 @@ const Landing = () => {
       <div className="container mx-auto px-4 pt-20 pb-16">
         <div className="text-center space-y-6 animate-fade-in">
           <div className="inline-block">
-            <img src="/orkadia-logo.jpg" alt="Orkadia Logo" className="mx-auto mb-4 w-32 h-32 rounded-full" />
+            <img src="/portella-logo.jpg" alt="Portella Logo" className="mx-auto mb-4 w-48 h-auto" />
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-            Bem-vindo à cidade virtual onde nostalgia encontra inovação
+            Onde as conexões voltam a ser humanas
           </p>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Uma rede social inspirada no clássico Orkut, mas com recursos modernos. 
-            Construa sua casa virtual, participe da praça central e faça parte desta comunidade única!
+            Uma rede social inspirada no clássico Orkut. 
+            Construa sua casa virtual, participe de clubes e conecte-se com pessoas de verdade!
           </p>
           
           <div className="flex gap-4 justify-center pt-4">
@@ -104,7 +104,7 @@ const Landing = () => {
             Pronto para começar sua jornada?
           </h2>
           <p className="text-lg mb-8 opacity-90">
-            Junte-se a milhares de pessoas que já fazem parte do Orkadia
+            Junte-se a milhares de pessoas que já fazem parte do Portella
           </p>
           <Button 
             size="lg"
