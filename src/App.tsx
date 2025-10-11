@@ -11,6 +11,7 @@ import TestConnection from "./pages/TestConnection";
 import Clubs from "./pages/Clubs";
 import Cinema from "./pages/Cinema";
 import Moderation from "./pages/Moderation";
+import CityHall from "./pages/CityHall";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
           <Route path="/clubs" element={<Clubs />} />
           <Route path="/cinema" element={<Cinema />} />
           <Route path="/moderation" element={<Moderation />} />
+          <Route path="/city-hall" element={<CityHall />} />
           <Route path="/test-connection" element={<TestConnection />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

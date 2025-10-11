@@ -92,7 +92,7 @@ const Dashboard = () => {
               icon={Building2}
               label="Prefeitura"
               active={activeSection === 'admin'}
-              onClick={() => setActiveSection('admin')}
+              onClick={() => navigate('/city-hall')}
             />
           </div>
         </Card>

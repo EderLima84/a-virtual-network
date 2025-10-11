@@ -59,6 +59,41 @@ export type Database = {
         }
         Relationships: []
       }
+      candidates: {
+        Row: {
+          created_at: string
+          election_id: string
+          id: string
+          proposal: string
+          user_id: string
+          votes_count: number
+        }
+        Insert: {
+          created_at?: string
+          election_id: string
+          id?: string
+          proposal: string
+          user_id: string
+          votes_count?: number
+        }
+        Update: {
+          created_at?: string
+          election_id?: string
+          id?: string
+          proposal?: string
+          user_id?: string
+          votes_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content: string
@@ -177,6 +212,179 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      election_votes: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          election_id: string
+          id: string
+          voter_id: string
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          election_id: string
+          id?: string
+          voter_id: string
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          election_id?: string
+          id?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "election_votes_candidate_id_fkey"
+            columns: ["candidate_id"]
+            isOneToOne: false
+            referencedRelation: "candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "election_votes_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      elections: {
+        Row: {
+          created_at: string
+          description: string
+          end_date: string
+          id: string
+          position: string
+          start_date: string
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          end_date: string
+          id?: string
+          position: string
+          start_date: string
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          end_date?: string
+          id?: string
+          position?: string
+          start_date?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
+      }
+      poll_options: {
+        Row: {
+          created_at: string
+          id: string
+          option_text: string
+          poll_id: string
+          votes_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_text: string
+          poll_id: string
+          votes_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_text?: string
+          poll_id?: string
+          votes_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_id: string
+          poll_id: string
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_id: string
+          poll_id: string
+          voter_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_id?: string
+          poll_id?: string
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      polls: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string
+          end_date: string
+          id: string
+          status: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description: string
+          end_date: string
+          id?: string
+          status?: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string
+          end_date?: string
+          id?: string
+          status?: string
+          title?: string
+        }
+        Relationships: []
       }
       post_likes: {
         Row: {
