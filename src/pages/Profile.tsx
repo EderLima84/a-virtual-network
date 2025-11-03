@@ -8,8 +8,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Chrome as Home, MessageSquare, Award, Image as ImageIcon, Music, Trophy, Send, Sparkles, Star, Heart, Gift, CirclePlus as PlusCircle, Camera, Upload } from "lucide-react";
+import { Chrome as Home, MessageSquare, Award, Image as ImageIcon, Music, Trophy, Send, Sparkles, Star, Heart, Gift, CirclePlus as PlusCircle, Camera, Upload, Edit2, Settings } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
+import { EditProfileDialog } from "@/components/EditProfileDialog";
+import { MusicPlayerDialog } from "@/components/MusicPlayerDialog";
+import { GalleryUploadDialog } from "@/components/GalleryUploadDialog";
 
 type ProfileData = Tables<"profiles"> & {
   avatar_url?: string;
@@ -35,6 +38,9 @@ const Profile = () => {
   const [loadingData, setLoadingData] = useState(true);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [musicDialogOpen, setMusicDialogOpen] = useState(false);
+  const [galleryDialogOpen, setGalleryDialogOpen] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
 
@@ -307,21 +313,32 @@ const Profile = () => {
                 <div className="text-center sm:text-left">
                   <h1 className="text-2xl md:text-3xl font-bold">{profile?.display_name}</h1>
                   <p className="text-muted-foreground">@{profile?.username}</p>
+                  {profile?.house_theme && profile.house_theme !== "default" && (
+                    <Badge variant="secondary" className="mt-2">
+                      Tema: {profile.house_theme}
+                    </Badge>
+                  )}
                 </div>
                 
-                {/* Botões de Interação Rápida */}
+                {/* Botões de Ação */}
                 <div className="flex gap-2 mt-4 sm:mt-0">
-                  <Button variant="default" size="sm" className="gap-2">
-                    <MessageSquare className="w-4 h-4" />
-                    Recado
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    className="gap-2 bg-gradient-orkut"
+                    onClick={() => setEditDialogOpen(true)}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                    Editar Perfil
                   </Button>
-                  <Button variant="secondary" size="sm" className="gap-2">
-                    <Gift className="w-4 h-4" />
-                    Presente
-                  </Button>
-                  <Button variant="secondary" size="sm" className="gap-2">
-                    <Star className="w-4 h-4" />
-                    Estrela
+                  <Button 
+                    variant="secondary" 
+                    size="sm" 
+                    className="gap-2"
+                    onClick={() => setMusicDialogOpen(true)}
+                  >
+                    <Music className="w-4 h-4" />
+                    Música
                   </Button>
                 </div>
               </div>
@@ -476,40 +493,70 @@ const Profile = () => {
                   <ImageIcon className="w-5 h-5 text-accent" />
                   Galeria de Momentos (Quarto)
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {[...Array(6)].map((_, i) => (
-                    <div key={i} className="aspect-square bg-muted rounded-lg overflow-hidden group relative border-2 border-transparent hover:border-primary transition-all duration-300">
-                      <img 
-                        src={`https://picsum.photos/300/300?random=${i+10}`} 
-                        alt={`Foto ${i + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent flex items-end p-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <p className="text-white text-xs font-bold">Foto {i + 1}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-center mt-6">
-                   <Button variant="secondary" className="gap-2">
-                      <PlusCircle className="w-4 h-4" />
-                      Adicionar Álbum/Foto
-                   </Button>
+                <div className="text-center py-8">
+                  <ImageIcon className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-30" />
+                  <h4 className="text-lg font-semibold mb-2">Sua galeria está vazia</h4>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    Adicione fotos dos seus melhores momentos e compartilhe com seus amigos!
+                  </p>
+                  <Button 
+                    onClick={() => setGalleryDialogOpen(true)}
+                    className="gap-2 bg-gradient-orkut"
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Adicionar Fotos
+                  </Button>
                 </div>
               </TabsContent>
 
               <TabsContent value="music" className="p-6">
-                <div className="text-center py-8">
-                  <Music className="w-16 h-16 text-secondary mx-auto mb-4 opacity-50" />
-                  <h3 className="text-xl font-semibold mb-2">Player de Música</h3>
-                  <p className="text-muted-foreground mb-4">
-                    🚧 Em breve! Escolha uma música para tocar quando visitarem sua casa.
-                  </p>
-                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                    <Sparkles className="w-4 h-4" />
-                    <span>Nostalgia do player do perfil está voltando!</span>
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Music className="w-5 h-5 text-secondary" />
+                  Música da Casa
+                </h3>
+                {profile?.house_music ? (
+                  <div className="space-y-4">
+                    <Card className="p-4 bg-muted/50">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-12 h-12 bg-gradient-orkut rounded-full flex items-center justify-center">
+                          <Music className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">Música de Fundo Ativa</p>
+                          <p className="text-xs text-muted-foreground">Seus visitantes ouvirão esta música</p>
+                        </div>
+                      </div>
+                      <div className="bg-background rounded p-2">
+                        <p className="text-sm truncate">{profile.house_music}</p>
+                      </div>
+                    </Card>
+                    <div className="flex justify-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setMusicDialogOpen(true)}
+                        className="gap-2"
+                      >
+                        <Settings className="w-4 h-4" />
+                        Alterar Música
+                      </Button>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <Music className="w-16 h-16 text-muted-foreground mx-auto mb-4 opacity-30" />
+                    <h4 className="text-lg font-semibold mb-2">Nenhuma música definida</h4>
+                    <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                      Adicione uma música de fundo do YouTube para tocar quando visitarem sua casa virtual!
+                    </p>
+                    <Button 
+                      onClick={() => setMusicDialogOpen(true)}
+                      className="gap-2 bg-gradient-orkut"
+                    >
+                      <PlusCircle className="w-4 h-4" />
+                      Adicionar Música
+                    </Button>
+                  </div>
+                )}
               </TabsContent>
             </Card>
           </Tabs>
@@ -547,6 +594,29 @@ const Profile = () => {
             )}
           </div>
         </div>
+
+        {/* Diálogos */}
+        <EditProfileDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          profile={profile}
+          onProfileUpdate={loadProfileData}
+        />
+        
+        <MusicPlayerDialog
+          open={musicDialogOpen}
+          onOpenChange={setMusicDialogOpen}
+          userId={user?.id}
+          currentMusic={profile?.house_music}
+          onMusicUpdate={loadProfileData}
+        />
+
+        <GalleryUploadDialog
+          open={galleryDialogOpen}
+          onOpenChange={setGalleryDialogOpen}
+          userId={user?.id}
+          onUploadComplete={loadProfileData}
+        />
       </div>
     </div>
   );
