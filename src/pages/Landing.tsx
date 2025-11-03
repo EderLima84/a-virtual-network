@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Home, Users, BookOpen, Film, Shield, Building2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import portellaLogo from "@/assets/portella-logo.png";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -44,7 +45,7 @@ const Landing = () => {
       <div className="container mx-auto px-4 pt-20 pb-16">
         <div className="text-center space-y-6 animate-fade-in">
           <div className="inline-block">
-            <img src="/portella-logo.jpg" alt="Portella Logo" className="mx-auto mb-4 w-48 h-auto" />
+            <img src={portellaLogo} alt="Portella Logo" className="mx-auto mb-4 w-64 h-auto" />
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
             Onde as conexões voltam a ser humanas

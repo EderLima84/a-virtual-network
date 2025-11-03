@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import Feed from "./Feed";
 import Profile from "./Profile";
+import portellaLogo from "@/assets/portella-logo.png";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -34,7 +35,7 @@ const Dashboard = () => {
       <header className="bg-card border-b shadow-card sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <img src="/portella-logo.jpg" alt="Portella Logo" className="h-12 w-auto" />
+            <img src={portellaLogo} alt="Portella Logo" className="h-12 w-auto" />
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">
                 {user.email}

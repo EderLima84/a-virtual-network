@@ -8,85 +8,85 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    /* Orkadia Colors - Inspired by Orkut */
-    --background: 240 25% 97%;
-    --foreground: 240 10% 15%;
+    /* Portella Colors - Inspired by Northeast Brazil */
+    --background: 35 40% 96%;
+    --foreground: 25 35% 20%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 15%;
+    --card: 35 30% 98%;
+    --card-foreground: 25 35% 20%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 15%;
+    --popover: 35 30% 98%;
+    --popover-foreground: 25 35% 20%;
 
-    /* Primary: Orkut Pink */
-    --primary: 340 75% 55%;
+    /* Primary: Terracotta/Clay Orange */
+    --primary: 18 75% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 340 85% 65%;
+    --primary-glow: 18 85% 65%;
 
-    /* Secondary: Deep Blue */
-    --secondary: 215 85% 50%;
-    --secondary-foreground: 0 0% 100%;
+    /* Secondary: Mustard Yellow (Sun) */
+    --secondary: 42 85% 55%;
+    --secondary-foreground: 25 35% 20%;
 
-    /* Accent: Purple/Lilac */
-    --accent: 270 60% 60%;
+    /* Accent: Sage Green (Cacti) */
+    --accent: 160 35% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 240 15% 92%;
-    --muted-foreground: 240 5% 45%;
+    --muted: 35 25% 90%;
+    --muted-foreground: 25 20% 45%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 20% 88%;
-    --input: 240 20% 88%;
-    --ring: 340 75% 55%;
+    --border: 35 25% 85%;
+    --input: 35 25% 85%;
+    --ring: 18 75% 55%;
 
     --radius: 0.75rem;
 
-    /* Gradients */
-    --gradient-orkut: linear-gradient(135deg, hsl(340 75% 55%), hsl(270 60% 60%));
-    --gradient-city: linear-gradient(180deg, hsl(215 85% 50%), hsl(270 60% 60%));
-    --gradient-shine: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.3), transparent);
+    /* Gradients - Nordeste vibes */
+    --gradient-orkut: linear-gradient(135deg, hsl(18 75% 55%), hsl(42 85% 55%));
+    --gradient-city: linear-gradient(180deg, hsl(42 85% 55%), hsl(18 75% 55%));
+    --gradient-shine: linear-gradient(90deg, transparent, hsl(42 85% 70% / 0.4), transparent);
 
     /* Shadows */
-    --shadow-card: 0 2px 8px hsl(240 10% 15% / 0.08);
-    --shadow-elevated: 0 8px 24px hsl(240 10% 15% / 0.12);
-    --shadow-glow: 0 0 24px hsl(340 75% 55% / 0.25);
+    --shadow-card: 0 2px 8px hsl(25 35% 20% / 0.08);
+    --shadow-elevated: 0 8px 24px hsl(25 35% 20% / 0.12);
+    --shadow-glow: 0 0 24px hsl(18 75% 55% / 0.3);
   }
 
   .dark {
-    --background: 240 20% 8%;
-    --foreground: 240 5% 95%;
+    --background: 25 25% 12%;
+    --foreground: 35 20% 90%;
 
-    --card: 240 15% 12%;
-    --card-foreground: 240 5% 95%;
+    --card: 25 20% 16%;
+    --card-foreground: 35 20% 90%;
 
-    --popover: 240 15% 12%;
-    --popover-foreground: 240 5% 95%;
+    --popover: 25 20% 16%;
+    --popover-foreground: 35 20% 90%;
 
-    --primary: 340 75% 55%;
+    --primary: 18 75% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 340 85% 65%;
+    --primary-glow: 18 85% 65%;
 
-    --secondary: 215 85% 50%;
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 42 85% 55%;
+    --secondary-foreground: 25 35% 20%;
 
-    --accent: 270 60% 60%;
+    --accent: 160 35% 50%;
     --accent-foreground: 0 0% 100%;
 
-    --muted: 240 15% 18%;
-    --muted-foreground: 240 5% 65%;
+    --muted: 25 15% 22%;
+    --muted-foreground: 35 15% 65%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 15% 20%;
-    --input: 240 15% 20%;
-    --ring: 340 75% 55%;
+    --border: 25 15% 24%;
+    --input: 25 15% 24%;
+    --ring: 18 75% 55%;
 
-    --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.3);
-    --shadow-elevated: 0 8px 24px hsl(0 0% 0% / 0.5);
-    --shadow-glow: 0 0 32px hsl(340 75% 55% / 0.4);
+    --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.35);
+    --shadow-elevated: 0 8px 24px hsl(0 0% 0% / 0.55);
+    --shadow-glow: 0 0 32px hsl(18 75% 55% / 0.45);
   }
 }
 
