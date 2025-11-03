@@ -13,6 +13,7 @@ import { Tables } from "@/integrations/supabase/types";
 import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { MusicPlayerDialog } from "@/components/MusicPlayerDialog";
 import { GalleryUploadDialog } from "@/components/GalleryUploadDialog";
+import { useAchievements } from "@/hooks/useAchievements";
 
 type ProfileData = Tables<"profiles"> & {
   avatar_url?: string;
@@ -30,6 +31,7 @@ type UserAchievement = Tables<"user_achievements"> & {
 
 const Profile = () => {
   const { user, loading } = useAuth();
+  const { checkFirstScrap, checkPhotographer, checkDecorator, checkMusician, checkWriter } = useAchievements();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [scraps, setScraps] = useState<Scrap[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
@@ -138,6 +140,10 @@ const Profile = () => {
 
       setNewScrap("");
       toast.success("✨ Recado adicionado!");
+      
+      // Check for first scrap achievement
+      await checkFirstScrap(user.id);
+      
       loadProfileData();
     } catch (error) {
       console.error("Erro ao adicionar recado:", error);
@@ -178,6 +184,12 @@ const Profile = () => {
       if (updateError) throw updateError;
 
       toast.success("✨ Avatar atualizado!");
+      
+      // Check for photographer achievement
+      if (user?.id) {
+        await checkPhotographer(user.id);
+      }
+      
       loadProfileData();
     } catch (error) {
       console.error('Erro ao fazer upload do avatar:', error);
@@ -220,6 +232,12 @@ const Profile = () => {
       if (updateError) throw updateError;
 
       toast.success("✨ Foto de capa atualizada!");
+      
+      // Check for decorator achievement
+      if (user?.id) {
+        await checkDecorator(user.id);
+      }
+      
       loadProfileData();
     } catch (error) {
       console.error('Erro ao fazer upload da capa:', error);

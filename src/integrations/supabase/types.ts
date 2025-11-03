@@ -811,20 +811,14 @@ export type Database = {
     }
     Functions: {
       calculate_weekly_ranking: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           score: number
           user_id: string
         }[]
       }
-      has_role: {
-        Args: { _role: string; _user_id: string }
-        Returns: boolean
-      }
-      is_moderator_or_admin: {
-        Args: { user_id: string }
-        Returns: boolean
-      }
+      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
+      is_moderator_or_admin: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
       report_status: "pending" | "resolved" | "dismissed"

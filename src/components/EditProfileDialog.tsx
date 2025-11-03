@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Tables } from "@/integrations/supabase/types";
+import { useAchievements } from "@/hooks/useAchievements";
 
 type ProfileData = Tables<"profiles">;
 
@@ -28,6 +29,7 @@ const themeOptions = [
 ];
 
 export const EditProfileDialog = ({ open, onOpenChange, profile, onProfileUpdate }: EditProfileDialogProps) => {
+  const { checkWriter } = useAchievements();
   const [displayName, setDisplayName] = useState(profile?.display_name || "");
   const [username, setUsername] = useState(profile?.username || "");
   const [bio, setBio] = useState(profile?.bio || "");
@@ -57,6 +59,12 @@ export const EditProfileDialog = ({ open, onOpenChange, profile, onProfileUpdate
       if (error) throw error;
 
       toast.success("Perfil atualizado com sucesso!");
+      
+      // Check for writer achievement if bio is long enough
+      if (bio.trim().length >= 20) {
+        await checkWriter(profile.id);
+      }
+      
       onProfileUpdate();
       onOpenChange(false);
     } catch (error: any) {

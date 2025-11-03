@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Music, ExternalLink, Volume2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
+import { useAchievements } from "@/hooks/useAchievements";
 
 interface MusicPlayerDialogProps {
   open: boolean;
@@ -24,6 +25,7 @@ const popularSongs = [
 ];
 
 export const MusicPlayerDialog = ({ open, onOpenChange, userId, currentMusic, onMusicUpdate }: MusicPlayerDialogProps) => {
+  const { checkMusician } = useAchievements();
   const [musicUrl, setMusicUrl] = useState(currentMusic || "");
   const [saving, setSaving] = useState(false);
 
@@ -48,6 +50,12 @@ export const MusicPlayerDialog = ({ open, onOpenChange, userId, currentMusic, on
       if (error) throw error;
 
       toast.success(musicUrl ? "Música da casa atualizada!" : "Música removida");
+      
+      // Check for musician achievement if music was added
+      if (musicUrl && userId) {
+        await checkMusician(userId);
+      }
+      
       onMusicUpdate();
       onOpenChange(false);
     } catch (error) {
