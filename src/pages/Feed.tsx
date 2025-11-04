@@ -20,7 +20,12 @@ import {
   Megaphone,
   Share2,
   Loader2,
-  X
+  X,
+  Smile,
+  ThumbsUp,
+  Flame,
+  Sunrise,
+  Users
 } from "lucide-react";
 import { Tables } from "@/integrations/supabase/types";
 import { CommentDialog } from "@/components/CommentDialog";
@@ -43,13 +48,38 @@ type PresenceState = {
   username: string;
 };
 
-const emotes = [
-  { icon: Heart, label: "Coração", color: "text-red-500" },
-  { icon: Star, label: "Estrela", color: "text-yellow-500" },
-  { icon: Sparkles, label: "Brilho", color: "text-purple-500" },
-  { icon: Cake, label: "Bolo", color: "text-pink-500" },
-  { icon: Trophy, label: "Troféu", color: "text-amber-500" },
+const reactions = [
+  { icon: "❤️", label: "Coração", color: "text-red-500" },
+  { icon: "🤠", label: "Sertanejo", color: "text-amber-500" },
+  { icon: "😂", label: "Risada", color: "text-yellow-500" },
+  { icon: "🙌", label: "Mãos", color: "text-blue-500" },
+  { icon: "🔥", label: "Fogo", color: "text-orange-500" },
 ];
+
+const getTimeAgo = (date: string) => {
+  const now = new Date();
+  const past = new Date(date);
+  const diffInMinutes = Math.floor((now.getTime() - past.getTime()) / 60000);
+  
+  if (diffInMinutes < 1) return "agora";
+  if (diffInMinutes < 60) return `há ${diffInMinutes}m`;
+  
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `há ${diffInHours}h`;
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return "ontem";
+  if (diffInDays < 7) return `há ${diffInDays} dias`;
+  
+  return past.toLocaleDateString("pt-BR");
+};
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return { text: "Bom dia, Portellanos!", icon: Sunrise, message: "O sol nasceu na Praça Central — compartilhe sua história de hoje." };
+  if (hour < 18) return { text: "Boa tarde, Portellanos!", icon: TrendingUp, message: "A cidade está animada — veja o que está acontecendo!" };
+  return { text: "Boa noite, Portellanos!", icon: Star, message: "As estrelas brilham na Praça — conte como foi seu dia." };
+};
 
 const Feed = () => {
   const { user, loading } = useAuth();
@@ -346,32 +376,63 @@ const Feed = () => {
     return <Navigate to="/auth" replace />;
   }
 
+  const greeting = getGreeting();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-primary/5 to-accent/5 py-8">
       <div className="container mx-auto px-4">
+        {/* Boletim da Cidade */}
+        <Card className="mb-6 bg-gradient-to-r from-primary/10 via-accent/10 to-secondary/10 border-primary/30">
+          <CardContent className="pt-6">
+            <div className="flex items-center gap-3 mb-2">
+              <greeting.icon className="w-6 h-6 text-primary" />
+              <h2 className="text-xl font-bold">{greeting.text}</h2>
+            </div>
+            <p className="text-sm text-muted-foreground mb-4">{greeting.message}</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="flex items-center gap-2 bg-background/50 rounded-lg p-3">
+                <Users className="w-4 h-4 text-green-500" />
+                <span><strong>{onlineUsers.length}</strong> cidadãos online agora</span>
+              </div>
+              <div className="flex items-center gap-2 bg-background/50 rounded-lg p-3">
+                <MessageCircle className="w-4 h-4 text-blue-500" />
+                <span><strong>{posts.length}</strong> conversas na praça</span>
+              </div>
+              <div className="flex items-center gap-2 bg-background/50 rounded-lg p-3">
+                <Trophy className="w-4 h-4 text-amber-500" />
+                <span>Ranking atualizado hoje</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           <aside className="hidden lg:block">
             <div className="sticky top-24 space-y-6">
-              <Card className="card-gradient-border">
+              <Card className="bg-card/95 backdrop-blur-sm border-primary/20">
                 <CardHeader>
-                  <CardTitle>Cidadãos Online</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Users className="w-5 h-5" />
+                    Cidadãos Online
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {onlineUsers.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Ninguém online no momento.</p>
                   ) : (
-                    <ul className="space-y-3">
+                    <ul className="space-y-2">
                       {onlineUsers.map((presence) => (
                         <li key={presence.user_id}>
-                          <Link to={`/profile/${presence.username}`} className="flex items-center gap-3 hover:bg-primary/10 p-2 rounded-md transition-colors">
+                          <Link to={`/profile/${presence.username}`} className="flex items-center gap-3 hover:bg-primary/10 p-2 rounded-lg transition-all hover:scale-105">
                             <div className="relative">
-                              <div className="w-8 h-8 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold text-sm">
+                              <div className="w-10 h-10 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold shadow-md">
                                 {presence.display_name.charAt(0).toUpperCase()}
                               </div>
-                              <span className="absolute bottom-0 right-0 block h-2 w-2 rounded-full bg-green-500 ring-2 ring-background" />
+                              <span className="absolute -bottom-0.5 -right-0.5 block h-3 w-3 rounded-full bg-green-500 ring-2 ring-background animate-pulse" />
                             </div>
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <p className="font-semibold text-sm truncate">{presence.display_name}</p>
+                              <p className="text-xs text-muted-foreground">@{presence.username}</p>
                             </div>
                           </Link>
                         </li>
@@ -385,7 +446,7 @@ const Feed = () => {
 
           <main className="lg:col-span-2">
             {/* Coreto Digital */}
-            <Card className="p-6 mb-8 shadow-elevated border-2 border-primary/20">
+            <Card className="p-6 mb-8 shadow-elevated border-2 border-primary/20 bg-card/95 backdrop-blur-sm">
               <div className="flex items-center gap-2 mb-4">
             <TrendingUp className="w-6 h-6 text-primary" />
             <h2 className="text-2xl font-bold bg-gradient-orkut bg-clip-text text-transparent">
@@ -418,8 +479,8 @@ const Feed = () => {
         </Card>
 
         {/* Criar Post */}
-        <Card className="p-6 mb-8 shadow-card">
-          <h3 className="font-semibold mb-4">O que está acontecendo na praça?</h3>
+        <Card className="p-6 mb-8 shadow-card bg-card/95 backdrop-blur-sm rounded-xl">
+          <h3 className="font-semibold mb-4 text-lg">O que está acontecendo na praça?</h3>
           <Textarea
             placeholder="Compartilhe algo com a comunidade..."
             value={newPostContent}
@@ -498,20 +559,28 @@ const Feed = () => {
             </Card>
           ) : (
             posts.map((post) => (
-              <Card key={post.id} className="p-6 shadow-card hover:shadow-elevated transition-shadow">
+              <Card key={post.id} className="p-6 shadow-card hover:shadow-elevated transition-all bg-card/95 backdrop-blur-sm rounded-xl">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold flex-shrink-0">
-                    {post.profiles.display_name.charAt(0).toUpperCase()}
-                  </div>
+                  <Link to={`/profile/${post.profiles.username}`}>
+                    <div className="w-12 h-12 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold flex-shrink-0 hover:scale-110 transition-transform shadow-md">
+                      {post.profiles.display_name.charAt(0).toUpperCase()}
+                    </div>
+                  </Link>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold">{post.profiles.display_name}</h4>
+                    <div className="flex items-center gap-2 mb-1">
+                      <Link to={`/profile/${post.profiles.username}`} className="hover:underline">
+                        <h4 className="font-semibold">{post.profiles.display_name}</h4>
+                      </Link>
                       <span className="text-xs text-muted-foreground">
                         @{post.profiles.username}
                       </span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(post.created_at!).toLocaleDateString("pt-BR")}
+                    </div>
+                    <div className="flex items-center gap-2 mb-3 text-xs text-muted-foreground">
+                      <span>{getTimeAgo(post.created_at!)}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" />
+                        na Praça Central
                       </span>
                     </div>
                     
@@ -572,9 +641,12 @@ const Feed = () => {
 
           <aside className="hidden lg:block">
             <div className="sticky top-24 space-y-6">
-              <Card className="card-gradient-border">
+              <Card className="bg-card/95 backdrop-blur-sm border-primary/20">
                 <CardHeader>
-                  <CardTitle>Ranking da Semana</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-amber-500" />
+                    Ranking da Semana
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {loadingRanking ? (
@@ -606,9 +678,12 @@ const Feed = () => {
                   )}
                 </CardContent>
               </Card>
-              <Card className="card-gradient-border">
+              <Card className="bg-card/95 backdrop-blur-sm border-primary/20">
                 <CardHeader>
-                  <CardTitle>Anúncios</CardTitle>
+                  <CardTitle className="flex items-center gap-2">
+                    <Megaphone className="w-5 h-5 text-primary" />
+                    Anúncios
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {loadingAnnouncements ? (
