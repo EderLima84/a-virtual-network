@@ -472,21 +472,33 @@ export type Database = {
       }
       friendships: {
         Row: {
+          affinity_score: number | null
           created_at: string
           friend_id: string
           id: string
+          interaction_count: number | null
+          last_interaction_at: string | null
+          level: Database["public"]["Enums"]["friendship_level"] | null
           user_id: string
         }
         Insert: {
+          affinity_score?: number | null
           created_at?: string
           friend_id: string
           id?: string
+          interaction_count?: number | null
+          last_interaction_at?: string | null
+          level?: Database["public"]["Enums"]["friendship_level"] | null
           user_id: string
         }
         Update: {
+          affinity_score?: number | null
           created_at?: string
           friend_id?: string
           id?: string
+          interaction_count?: number | null
+          last_interaction_at?: string | null
+          level?: Database["public"]["Enums"]["friendship_level"] | null
           user_id?: string
         }
         Relationships: [
@@ -500,6 +512,48 @@ export type Database = {
           {
             foreignKeyName: "friendships_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gifts: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          gift_type: string
+          id: string
+          message: string | null
+          to_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          gift_type: string
+          id?: string
+          message?: string | null
+          to_user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          gift_type?: string
+          id?: string
+          message?: string | null
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gifts_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gifts_to_user_id_fkey"
+            columns: ["to_user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -669,6 +723,50 @@ export type Database = {
             foreignKeyName: "posts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      privacy_settings: {
+        Row: {
+          created_at: string
+          updated_at: string
+          user_id: string
+          who_can_see_posts:
+            | Database["public"]["Enums"]["privacy_setting"]
+            | null
+          who_can_send_requests:
+            | Database["public"]["Enums"]["privacy_setting"]
+            | null
+        }
+        Insert: {
+          created_at?: string
+          updated_at?: string
+          user_id: string
+          who_can_see_posts?:
+            | Database["public"]["Enums"]["privacy_setting"]
+            | null
+          who_can_send_requests?:
+            | Database["public"]["Enums"]["privacy_setting"]
+            | null
+        }
+        Update: {
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+          who_can_see_posts?:
+            | Database["public"]["Enums"]["privacy_setting"]
+            | null
+          who_can_send_requests?:
+            | Database["public"]["Enums"]["privacy_setting"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "privacy_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1097,11 +1195,57 @@ export type Database = {
           },
         ]
       }
+      wall_messages: {
+        Row: {
+          created_at: string
+          from_user_id: string
+          id: string
+          is_public: boolean | null
+          message: string
+          to_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_user_id: string
+          id?: string
+          is_public?: boolean | null
+          message: string
+          to_user_id: string
+        }
+        Update: {
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          is_public?: boolean | null
+          message?: string
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wall_messages_from_user_id_fkey"
+            columns: ["from_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wall_messages_to_user_id_fkey"
+            columns: ["to_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      calculate_affinity: {
+        Args: { user1_id: string; user2_id: string }
+        Returns: number
+      }
       calculate_weekly_ranking: {
         Args: never
         Returns: {
@@ -1113,6 +1257,8 @@ export type Database = {
       is_moderator_or_admin: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
+      friendship_level: "conhecido" | "vizinho" | "amigo_varanda"
+      privacy_setting: "todos" | "amigos_de_amigos" | "ninguem"
       report_status: "pending" | "resolved" | "dismissed"
       report_type: "post" | "comment" | "user" | "video"
       user_role: "user" | "moderator" | "admin" | "prefeito"
@@ -1243,6 +1389,8 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      friendship_level: ["conhecido", "vizinho", "amigo_varanda"],
+      privacy_setting: ["todos", "amigos_de_amigos", "ninguem"],
       report_status: ["pending", "resolved", "dismissed"],
       report_type: ["post", "comment", "user", "video"],
       user_role: ["user", "moderator", "admin", "prefeito"],

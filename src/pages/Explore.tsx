@@ -8,9 +8,12 @@ import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Search, UserPlus, UserCheck, UserX, Users, X } from 'lucide-react';
+import { Search, UserPlus, UserCheck, UserX, Users, X, HandMetal, Gift } from 'lucide-react';
 import { toast } from 'sonner';
 import { CityNavigation } from '@/components/CityNavigation';
+import { FriendshipLevelBadge, FriendshipLevel } from '@/components/FriendshipLevel';
+import { GiftDialog } from '@/components/GiftDialog';
+import { AffinityScore } from '@/components/AffinityScore';
 
 interface Profile {
   id: string;
@@ -19,6 +22,8 @@ interface Profile {
   avatar_url: string | null;
   bio: string | null;
   friendshipStatus?: 'none' | 'pending_sent' | 'pending_received' | 'friends';
+  friendshipLevel?: FriendshipLevel;
+  affinityScore?: number;
 }
 
 interface Community {
@@ -39,6 +44,8 @@ export default function Explore() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<Profile[]>([]);
+  const [giftDialogOpen, setGiftDialogOpen] = useState(false);
+  const [selectedGiftRecipient, setSelectedGiftRecipient] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!user) {
@@ -109,20 +116,25 @@ export default function Explore() {
 
         const { data: friendship } = await supabase
           .from('friendships')
-          .select('id')
+          .select('id, level, affinity_score')
           .or(`and(user_id.eq.${user.id},friend_id.eq.${profile.id}),and(user_id.eq.${profile.id},friend_id.eq.${user.id})`)
           .single();
 
         let friendshipStatus: Profile['friendshipStatus'] = 'none';
+        let friendshipLevel: FriendshipLevel | undefined = undefined;
+        let affinityScore: number | undefined = undefined;
+        
         if (friendship) {
           friendshipStatus = 'friends';
+          friendshipLevel = friendship.level as FriendshipLevel;
+          affinityScore = friendship.affinity_score;
         } else if (sentRequest?.status === 'pending') {
           friendshipStatus = 'pending_sent';
         } else if (receivedRequest?.status === 'pending') {
           friendshipStatus = 'pending_received';
         }
 
-        return { ...profile, friendshipStatus };
+        return { ...profile, friendshipStatus, friendshipLevel, affinityScore };
       })
     );
 
@@ -173,7 +185,7 @@ export default function Explore() {
     searchCommunities(query);
   };
 
-  const sendFriendRequest = async (receiverId: string) => {
+  const sendFriendRequest = async (receiverId: string, receiverName: string) => {
     if (!user) return;
 
     const { error } = await supabase
@@ -185,9 +197,9 @@ export default function Explore() {
       });
 
     if (error) {
-      toast.error('Erro ao enviar solicitação');
+      toast.error('Erro ao enviar convite');
     } else {
-      toast.success('Solicitação enviada!');
+      toast.success(`👋 Você acenou para ${receiverName} na praça!`);
       handleSearch(searchQuery);
     }
   };
@@ -218,7 +230,14 @@ export default function Explore() {
     if (friendshipError) {
       toast.error('Erro ao criar amizade');
     } else {
-      toast.success('Amizade aceita!');
+      // Get sender profile for personalized message
+      const { data: senderProfile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('id', senderId)
+        .single();
+      
+      toast.success(`🌻 Você e ${senderProfile?.display_name || 'alguém'} agora são vizinhos!`);
       loadPendingRequests();
       handleSearch(searchQuery);
     }
@@ -301,19 +320,22 @@ export default function Explore() {
         <div className="space-y-6">
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent mb-2">
-              🔍 Explorar a Portella
+              🔍 Explorar Portella
             </h1>
             <p className="text-muted-foreground">
-              Encontre novos amigos e clubes na cidade digital
+              Encontre vizinhos e clubes na cidade digital — cumprimente, faça amizades e compartilhe afinidades!
             </p>
           </div>
 
           {pendingRequests.length > 0 && (
-            <Card className="p-4 border-primary/20 bg-card/95 backdrop-blur-sm">
+            <Card className="p-4 border-primary/20 bg-gradient-to-br from-card/95 to-primary/5 backdrop-blur-sm shadow-elevated">
               <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <UserPlus className="h-5 w-5 text-primary" />
-                Solicitações Pendentes ({pendingRequests.length})
+                <HandMetal className="h-5 w-5 text-primary" />
+                👋 Convites de Convivência ({pendingRequests.length})
               </h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Alguém acenou para você na praça! Aceite para virar vizinho.
+              </p>
               <div className="grid gap-3">
                 {pendingRequests.map(profile => (
                   <div key={profile.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
@@ -375,28 +397,39 @@ export default function Explore() {
                           <AvatarImage src={profile.avatar_url || undefined} />
                           <AvatarFallback>{profile.display_name[0]}</AvatarFallback>
                         </Avatar>
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-lg cursor-pointer hover:text-primary" onClick={() => navigate(`/profile/${profile.id}`)}>
-                            {profile.display_name}
-                          </h3>
-                          <p className="text-sm text-muted-foreground">@{profile.username}</p>
-                          {profile.bio && (
-                            <p className="text-sm mt-2">{profile.bio}</p>
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <h3 className="font-semibold text-lg cursor-pointer hover:text-primary flex items-center gap-2" onClick={() => navigate(`/profile/${profile.id}`)}>
+                              {profile.display_name}
+                              {profile.friendshipLevel && (
+                                <FriendshipLevelBadge level={profile.friendshipLevel} size="sm" />
+                              )}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">@{profile.username}</p>
+                            {profile.bio && (
+                              <p className="text-sm mt-2">{profile.bio}</p>
+                            )}
+                          </div>
+                          
+                          {profile.friendshipStatus === 'friends' && user && (
+                            <AffinityScore userId={profile.id} currentUserId={user.id} />
                           )}
                         </div>
-                        <div>
+                        <div className="flex flex-col gap-2">
                           {profile.friendshipStatus === 'none' && (
-                            <Button onClick={() => sendFriendRequest(profile.id)}>
-                              <UserPlus className="h-4 w-4 mr-2" />
-                              Adicionar
+                            <Button onClick={() => sendFriendRequest(profile.id, profile.display_name)} className="bg-gradient-orkut">
+                              <HandMetal className="h-4 w-4 mr-2" />
+                              Cumprimentar
                             </Button>
                           )}
                           {profile.friendshipStatus === 'pending_sent' && (
-                            <Badge variant="secondary">Solicitação enviada</Badge>
+                            <Badge variant="secondary" className="justify-center py-2">
+                              👋 Convite enviado
+                            </Badge>
                           )}
                           {profile.friendshipStatus === 'pending_received' && (
                             <div className="flex gap-2">
-                              <Button size="sm" onClick={() => acceptFriendRequest(profile.id)}>
+                              <Button size="sm" onClick={() => acceptFriendRequest(profile.id)} className="bg-gradient-orkut">
                                 Aceitar
                               </Button>
                               <Button size="sm" variant="outline" onClick={() => rejectFriendRequest(profile.id)}>
@@ -405,10 +438,23 @@ export default function Explore() {
                             </div>
                           )}
                           {profile.friendshipStatus === 'friends' && (
-                            <Button variant="outline" onClick={() => removeFriend(profile.id)}>
-                              <UserX className="h-4 w-4 mr-2" />
-                              Remover
-                            </Button>
+                            <>
+                              <Button 
+                                variant="outline" 
+                                onClick={() => {
+                                  setSelectedGiftRecipient({ id: profile.id, name: profile.display_name });
+                                  setGiftDialogOpen(true);
+                                }}
+                                className="border-primary/30 hover:bg-primary/10"
+                              >
+                                <Gift className="h-4 w-4 mr-2" />
+                                Enviar Presente
+                              </Button>
+                              <Button variant="ghost" size="sm" onClick={() => removeFriend(profile.id)} className="text-destructive">
+                                <UserX className="h-4 w-4 mr-2" />
+                                Remover
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -474,6 +520,19 @@ export default function Explore() {
           </Tabs>
         </div>
       </main>
+      
+      {/* Gift Dialog */}
+      {selectedGiftRecipient && (
+        <GiftDialog
+          isOpen={giftDialogOpen}
+          onClose={() => {
+            setGiftDialogOpen(false);
+            setSelectedGiftRecipient(null);
+          }}
+          recipientId={selectedGiftRecipient.id}
+          recipientName={selectedGiftRecipient.name}
+        />
+      )}
     </div>
   );
 }
