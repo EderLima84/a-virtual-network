@@ -36,6 +36,12 @@ interface Community {
   isMember: boolean;
 }
 
+interface SuggestedProfile extends Profile {
+  reason: string;
+  commonFriends?: number;
+  commonCommunities?: number;
+}
+
 export default function Explore() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -44,6 +50,8 @@ export default function Explore() {
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(false);
   const [pendingRequests, setPendingRequests] = useState<Profile[]>([]);
+  const [suggestedFriends, setSuggestedFriends] = useState<SuggestedProfile[]>([]);
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [giftDialogOpen, setGiftDialogOpen] = useState(false);
   const [selectedGiftRecipient, setSelectedGiftRecipient] = useState<{ id: string; name: string } | null>(null);
 
@@ -53,6 +61,7 @@ export default function Explore() {
       return;
     }
     loadPendingRequests();
+    loadFriendSuggestions();
   }, [user, navigate]);
 
   const loadPendingRequests = async () => {
@@ -75,6 +84,132 @@ export default function Explore() {
       }));
       setPendingRequests(requests);
     }
+  };
+
+  const loadFriendSuggestions = async () => {
+    if (!user) return;
+    
+    setLoadingSuggestions(true);
+    
+    // Get user's current friends
+    const { data: myFriends } = await supabase
+      .from('friendships')
+      .select('friend_id')
+      .eq('user_id', user.id);
+    
+    const myFriendIds = myFriends?.map(f => f.friend_id) || [];
+    
+    // Get user's pending requests to exclude them
+    const { data: pendingOut } = await supabase
+      .from('friend_requests')
+      .select('receiver_id')
+      .eq('sender_id', user.id)
+      .eq('status', 'pending');
+    
+    const pendingIds = pendingOut?.map(p => p.receiver_id) || [];
+    
+    // Get user's communities
+    const { data: myCommunities } = await supabase
+      .from('community_members')
+      .select('community_id')
+      .eq('user_id', user.id);
+    
+    const myCommunityIds = myCommunities?.map(c => c.community_id) || [];
+    
+    // Find people in same communities
+    let suggestions: SuggestedProfile[] = [];
+    
+    if (myCommunityIds.length > 0) {
+      const { data: communityMembers } = await supabase
+        .from('community_members')
+        .select('user_id, community_id, profiles(*)')
+        .in('community_id', myCommunityIds)
+        .neq('user_id', user.id);
+      
+      if (communityMembers) {
+        const profileMap = new Map<string, { profile: any; communities: Set<string> }>();
+        
+        communityMembers.forEach(member => {
+          if (myFriendIds.includes(member.user_id) || pendingIds.includes(member.user_id)) return;
+          
+          if (!profileMap.has(member.user_id)) {
+            profileMap.set(member.user_id, {
+              profile: member.profiles,
+              communities: new Set([member.community_id])
+            });
+          } else {
+            profileMap.get(member.user_id)!.communities.add(member.community_id);
+          }
+        });
+        
+        profileMap.forEach(({ profile, communities }) => {
+          if (profile) {
+            suggestions.push({
+              id: profile.id,
+              username: profile.username,
+              display_name: profile.display_name,
+              avatar_url: profile.avatar_url,
+              bio: profile.bio,
+              friendshipStatus: 'none',
+              reason: communities.size > 1 
+                ? `${communities.size} clubes em comum` 
+                : '1 clube em comum',
+              commonCommunities: communities.size
+            });
+          }
+        });
+      }
+    }
+    
+    // Find friends of friends
+    if (myFriendIds.length > 0) {
+      const { data: friendsOfFriends } = await supabase
+        .from('friendships')
+        .select('friend_id, profiles(*)')
+        .in('user_id', myFriendIds)
+        .neq('friend_id', user.id);
+      
+      if (friendsOfFriends) {
+        const fofMap = new Map<string, { profile: any; count: number }>();
+        
+        friendsOfFriends.forEach(fof => {
+          if (myFriendIds.includes(fof.friend_id) || pendingIds.includes(fof.friend_id)) return;
+          
+          if (!fofMap.has(fof.friend_id)) {
+            fofMap.set(fof.friend_id, { profile: fof.profiles, count: 1 });
+          } else {
+            fofMap.get(fof.friend_id)!.count++;
+          }
+        });
+        
+        fofMap.forEach(({ profile, count }, userId) => {
+          if (profile && !suggestions.find(s => s.id === userId)) {
+            suggestions.push({
+              id: profile.id,
+              username: profile.username,
+              display_name: profile.display_name,
+              avatar_url: profile.avatar_url,
+              bio: profile.bio,
+              friendshipStatus: 'none',
+              reason: count > 1 
+                ? `${count} amigos em comum` 
+                : '1 amigo em comum',
+              commonFriends: count
+            });
+          }
+        });
+      }
+    }
+    
+    // Sort by relevance (more common friends/communities first)
+    suggestions.sort((a, b) => {
+      const aScore = (a.commonFriends || 0) + (a.commonCommunities || 0) * 2;
+      const bScore = (b.commonFriends || 0) + (b.commonCommunities || 0) * 2;
+      return bScore - aScore;
+    });
+    
+    setSuggestedFriends(suggestions.slice(0, 6));
+    setLoadingSuggestions(false);
   };
 
   const searchUsers = async (query: string) => {
@@ -200,7 +335,8 @@ export default function Explore() {
       toast.error('Erro ao enviar convite');
     } else {
       toast.success(`👋 Você acenou para ${receiverName} na praça!`);
-      handleSearch(searchQuery);
+      loadFriendSuggestions();
+      if (searchQuery) handleSearch(searchQuery);
     }
   };
 
@@ -239,7 +375,8 @@ export default function Explore() {
       
       toast.success(`🌻 Você e ${senderProfile?.display_name || 'alguém'} agora são vizinhos!`);
       loadPendingRequests();
-      handleSearch(searchQuery);
+      loadFriendSuggestions();
+      if (searchQuery) handleSearch(searchQuery);
     }
   };
 
@@ -356,6 +493,56 @@ export default function Explore() {
                       </Button>
                     </div>
                   </div>
+                ))}
+              </div>
+            </Card>
+          )}
+
+          {suggestedFriends.length > 0 && !searchQuery && (
+            <Card className="p-6 border-accent/30 bg-gradient-to-br from-card to-accent/5">
+              <h3 className="font-semibold text-lg mb-2 flex items-center gap-2">
+                <Users className="h-5 w-5 text-accent" />
+                🌟 Pessoas que você pode conhecer
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                Vizinhos com interesses em comum na Cidade Portella
+              </p>
+              <div className="grid gap-3 md:grid-cols-2">
+                {suggestedFriends.map(profile => (
+                  <Card key={profile.id} className="p-4 hover:border-accent/50 transition-all hover:shadow-md">
+                    <div className="flex items-start gap-3">
+                      <Avatar 
+                        className="h-14 w-14 border-2 border-accent/20 cursor-pointer" 
+                        onClick={() => navigate(`/profile/${profile.id}`)}
+                      >
+                        <AvatarImage src={profile.avatar_url || undefined} />
+                        <AvatarFallback>{profile.display_name[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h4 
+                          className="font-semibold cursor-pointer hover:text-accent transition-colors truncate"
+                          onClick={() => navigate(`/profile/${profile.id}`)}
+                        >
+                          {profile.display_name}
+                        </h4>
+                        <p className="text-xs text-muted-foreground truncate">@{profile.username}</p>
+                        <Badge variant="secondary" className="mt-1 text-xs">
+                          {profile.reason}
+                        </Badge>
+                        {profile.bio && (
+                          <p className="text-xs text-muted-foreground mt-2 line-clamp-2">{profile.bio}</p>
+                        )}
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      onClick={() => sendFriendRequest(profile.id, profile.display_name)}
+                      className="w-full mt-3 bg-gradient-orkut"
+                    >
+                      <HandMetal className="h-3 w-3 mr-1" />
+                      Cumprimentar
+                    </Button>
+                  </Card>
                 ))}
               </div>
             </Card>
