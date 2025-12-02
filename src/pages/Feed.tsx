@@ -51,6 +51,7 @@ type PresenceState = {
   user_id: string;
   display_name: string;
   username: string;
+  presence_ref?: string;
 };
 
 // Assign random badges for demo purposes
@@ -119,8 +120,17 @@ const Feed = () => {
       channel
         .on("presence", { event: "sync" }, () => {
           const newState = channel.presenceState<PresenceState>();
-          const users = Object.values(newState).flat();
-          setOnlineUsers(users);
+          const allPresences = Object.values(newState).flat();
+          
+          // Remove duplicate users (keep only one presence per user_id)
+          const uniqueUsers = allPresences.reduce((acc, presence) => {
+            if (!acc.find(u => u.user_id === presence.user_id)) {
+              acc.push(presence);
+            }
+            return acc;
+          }, [] as PresenceState[]);
+          
+          setOnlineUsers(uniqueUsers);
         })
         .on("presence", { event: "join" }, ({ key, newPresences }) => {
           console.log("join", key, newPresences);
@@ -438,7 +448,7 @@ const Feed = () => {
                   ) : (
                     <ul className="space-y-2">
                       {onlineUsers.map((presence) => (
-                        <li key={presence.user_id}>
+                        <li key={`${presence.user_id}-${presence.presence_ref || ''}`}>
                           <Link to={`/profile/${presence.username}`} className="flex items-center gap-3 hover:bg-primary/10 p-2 rounded-lg transition-all hover:scale-105">
                             <div className="relative">
                               <div className="w-10 h-10 rounded-full bg-gradient-orkut flex items-center justify-center text-white font-bold shadow-md">
