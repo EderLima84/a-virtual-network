@@ -1,10 +1,11 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Home, Users, BookOpen, Film, Shield, Building2, LogOut, Search } from "lucide-react";
+import { Home, Users, BookOpen, Film, Shield, Building2, LogOut, Search, Settings } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import portellaLogo from "@/assets/portella-logo.png";
 import { CityIcon } from "./CityIcon";
+import { NotificationBell } from "./NotificationBell";
 
 export const CityNavigation = () => {
   const navigate = useNavigate();
@@ -37,7 +38,16 @@ export const CityNavigation = () => {
               onClick={() => navigate("/dashboard")}
             />
             <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
+              <NotificationBell />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/privacy-settings')}
+                title="Configurações de Privacidade"
+              >
+                <Settings className="w-5 h-5" />
+              </Button>
+              <span className="text-sm text-muted-foreground hidden sm:inline">
                 {user?.email}
               </span>
               <Button
@@ -47,7 +57,7 @@ export const CityNavigation = () => {
                 className="gap-2"
               >
                 <LogOut className="w-4 h-4" />
-                Sair
+                <span className="hidden sm:inline">Sair</span>
               </Button>
             </div>
           </div>

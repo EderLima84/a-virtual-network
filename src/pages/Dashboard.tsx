@@ -2,14 +2,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate, useNavigate } from "react-router-dom";
 import { CityIcon } from "@/components/CityIcon";
 import { Button } from "@/components/ui/button";
-import { Home, Users, BookOpen, Film, Shield, Building2, LogOut, Volume2, VolumeX, Search } from "lucide-react";
+import { Home, Users, BookOpen, Film, Shield, Building2, LogOut, Volume2, VolumeX, Search, Settings } from "lucide-react";
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import Feed from "./Feed";
 import Profile from "./Profile";
 import portellaLogo from "@/assets/portella-logo.png";
 import { useTimeOfDay } from "@/hooks/useTimeOfDay";
-import { cn } from "@/lib/utils";
+import { NotificationBell } from "@/components/NotificationBell";
 
 const Dashboard = () => {
   const { user, loading, signOut } = useAuth();
@@ -60,6 +60,15 @@ const Dashboard = () => {
               >
                 {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                 <span className="text-xs">Sons</span>
+              </Button>
+              <NotificationBell />
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/privacy-settings')}
+                title="Configurações de Privacidade"
+              >
+                <Settings className="w-5 h-5" />
               </Button>
               <span className="text-sm text-muted-foreground hidden sm:inline">
                 {user.email}

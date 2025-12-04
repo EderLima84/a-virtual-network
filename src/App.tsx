@@ -14,6 +14,7 @@ import Moderation from "./pages/Moderation";
 import CityHall from "./pages/CityHall";
 import Explore from "./pages/Explore";
 import PublicProfile from "./pages/PublicProfile";
+import PrivacySettings from "./pages/PrivacySettings";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,7 @@ const App = () => (
           <Route path="/city-hall" element={<CityHall />} />
           <Route path="/explore" element={<Explore />} />
           <Route path="/profile/:userId" element={<PublicProfile />} />
+          <Route path="/privacy-settings" element={<PrivacySettings />} />
           <Route path="/test-connection" element={<TestConnection />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
