@@ -43,7 +43,7 @@ interface SuggestedProfile extends Profile {
 }
 
 export default function Explore() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [profiles, setProfiles] = useState<Profile[]>([]);
@@ -56,13 +56,25 @@ export default function Explore() {
   const [selectedGiftRecipient, setSelectedGiftRecipient] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
+    if (authLoading) return;
     if (!user) {
       navigate('/auth');
       return;
     }
     loadPendingRequests();
     loadFriendSuggestions();
-  }, [user, navigate]);
+  }, [user, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   const loadPendingRequests = async () => {
     if (!user) return;
