@@ -21,6 +21,7 @@ import { EditProfileDialog } from "@/components/EditProfileDialog";
 import { MusicPlayerDialog } from "@/components/MusicPlayerDialog";
 import { GalleryUploadDialog } from "@/components/GalleryUploadDialog";
 import { BlockedUsersDialog } from "@/components/BlockedUsersDialog";
+import { PhotoGallery } from "@/components/PhotoGallery";
 import { useAchievements } from "@/hooks/useAchievements";
 import { FriendshipCircle } from "@/components/FriendshipCircle";
 import { WallMessages } from "@/components/WallMessages";
@@ -385,6 +386,7 @@ const Profile = () => {
               {[
                 { id: "posts", label: "Publicações", icon: Grid3X3 },
                 { id: "about", label: "Sobre", icon: Home },
+                { id: "photos", label: "Fotos", icon: ImageIcon },
                 { id: "friends", label: "Amigos", icon: Users },
                 { id: "gifts", label: "Presentes", icon: Gift },
                 { id: "trophies", label: "Troféus", icon: Trophy },
@@ -639,6 +641,10 @@ const Profile = () => {
                   )}
                 </div>
               </Card>
+            )}
+
+            {activeTab === "photos" && user && (
+              <PhotoGallery userId={user.id} isOwner={true} />
             )}
 
             {activeTab === "friends" && (

@@ -38,6 +38,44 @@ export type Database = {
         }
         Relationships: []
       }
+      albums: {
+        Row: {
+          cover_photo_url: string | null
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cover_photo_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cover_photo_url?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "albums_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           content: string
@@ -511,6 +549,48 @@ export type Database = {
           },
           {
             foreignKeyName: "friendships_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gallery_photos: {
+        Row: {
+          album_id: string | null
+          caption: string | null
+          created_at: string
+          id: string
+          photo_url: string
+          user_id: string
+        }
+        Insert: {
+          album_id?: string | null
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_url: string
+          user_id: string
+        }
+        Update: {
+          album_id?: string | null
+          caption?: string | null
+          created_at?: string
+          id?: string
+          photo_url?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gallery_photos_album_id_fkey"
+            columns: ["album_id"]
+            isOneToOne: false
+            referencedRelation: "albums"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gallery_photos_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
