@@ -4,10 +4,30 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { toast } from "sonner";
+import { z } from "zod";
 import portellaLogo from "@/assets/portella-logo.png";
 
+const signupSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string()
+    .min(8, "Senha deve ter no mínimo 8 caracteres")
+    .regex(/[A-Z]/, "Senha deve conter pelo menos uma letra maiúscula")
+    .regex(/[0-9]/, "Senha deve conter pelo menos um número"),
+  username: z.string()
+    .min(3, "Nome de usuário deve ter no mínimo 3 caracteres")
+    .max(20, "Nome de usuário deve ter no máximo 20 caracteres")
+    .regex(/^[a-zA-Z0-9_]+$/, "Nome de usuário só pode conter letras, números e _"),
+  displayName: z.string()
+    .min(2, "Nome de exibição deve ter no mínimo 2 caracteres")
+    .max(50, "Nome de exibição deve ter no máximo 50 caracteres"),
+});
+
+const loginSchema = z.object({
+  email: z.string().email("Email inválido"),
+  password: z.string().min(1, "Senha é obrigatória"),
+});
 
 const Auth = () => {
   const [searchParams] = useSearchParams();
@@ -19,6 +39,7 @@ const Auth = () => {
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   
   const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
@@ -29,16 +50,41 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
+  const validateForm = () => {
+    setErrors({});
+    
+    try {
+      if (mode === 'signup') {
+        signupSchema.parse({ email, password, username, displayName });
+      } else {
+        loginSchema.parse({ email, password });
+      }
+      return true;
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        const newErrors: Record<string, string> = {};
+        error.errors.forEach((err) => {
+          if (err.path[0]) {
+            newErrors[err.path[0] as string] = err.message;
+          }
+        });
+        setErrors(newErrors);
+      }
+      return false;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
 
     try {
       if (mode === 'signup') {
-        if (!username || !displayName) {
-          toast.error('Preencha todos os campos');
-          return;
-        }
         const { error } = await signUp(email, password, username, displayName);
         if (error) {
           if (error.message.includes('already registered')) {
@@ -99,8 +145,11 @@ const Auth = () => {
                     placeholder="seunome"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    required
+                    className={errors.username ? "border-destructive" : ""}
                   />
+                  {errors.username && (
+                    <p className="text-xs text-destructive">{errors.username}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="displayName">Nome de Exibição</Label>
@@ -110,8 +159,11 @@ const Auth = () => {
                     placeholder="Seu Nome Completo"
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    required
+                    className={errors.displayName ? "border-destructive" : ""}
                   />
+                  {errors.displayName && (
+                    <p className="text-xs text-destructive">{errors.displayName}</p>
+                  )}
                 </div>
               </>
             )}
@@ -124,8 +176,11 @@ const Auth = () => {
                 placeholder="seu@email.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                required
+                className={errors.email ? "border-destructive" : ""}
               />
+              {errors.email && (
+                <p className="text-xs text-destructive">{errors.email}</p>
+              )}
             </div>
             
             <div className="space-y-2">
@@ -136,8 +191,16 @@ const Auth = () => {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
+                className={errors.password ? "border-destructive" : ""}
               />
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password}</p>
+              )}
+              {mode === 'signup' && !errors.password && (
+                <p className="text-xs text-muted-foreground">
+                  Mínimo 8 caracteres, 1 maiúscula e 1 número
+                </p>
+              )}
             </div>
 
             <Button 
@@ -151,7 +214,10 @@ const Auth = () => {
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+              onClick={() => {
+                setMode(mode === 'login' ? 'signup' : 'login');
+                setErrors({});
+              }}
               className="text-sm text-primary hover:underline"
             >
               {mode === 'login' 
@@ -161,13 +227,19 @@ const Auth = () => {
             </button>
           </div>
 
-          <div className="mt-4 text-center">
+          <div className="mt-4 text-center space-y-2">
             <button
               onClick={() => navigate('/')}
-              className="text-sm text-muted-foreground hover:text-foreground"
+              className="text-sm text-muted-foreground hover:text-foreground block w-full"
             >
               Voltar para o início
             </button>
+            <div className="text-xs text-muted-foreground">
+              Ao criar uma conta, você concorda com nossos{' '}
+              <Link to="/terms" className="text-primary hover:underline">Termos de Uso</Link>
+              {' '}e{' '}
+              <Link to="/privacy" className="text-primary hover:underline">Política de Privacidade</Link>
+            </div>
           </div>
         </CardContent>
       </Card>

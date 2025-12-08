@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Home, Users, BookOpen, Film, Shield, Building2, LogOut, Search, Settings } from "lucide-react";
+import { Home, Users, BookOpen, Film, Shield, Building2, LogOut, Search, Settings, MessageSquare, User } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import portellaLogo from "@/assets/portella-logo.png";
 import { CityIcon } from "./CityIcon";
@@ -15,7 +15,9 @@ export const CityNavigation = () => {
   const getActiveSection = () => {
     const path = location.pathname;
     if (path === "/dashboard") return "feed";
+    if (path === "/profile") return "profile";
     if (path === "/explore") return "explore";
+    if (path === "/messages") return "messages";
     if (path === "/clubs") return "clubs";
     if (path === "/cinema") return "cinema";
     if (path === "/moderation") return "moderation";
@@ -68,12 +70,12 @@ export const CityNavigation = () => {
       <div className="container mx-auto px-4 py-8">
         <Card className="p-6 mb-8 shadow-elevated">
           <h2 className="text-2xl font-bold mb-6 text-center">Navegue pela Cidade</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+          <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-9 gap-4">
             <CityIcon
-              icon={Home}
-              label="Minha Casa"
-              active={false}
-              onClick={() => navigate('/dashboard')}
+              icon={User}
+              label="Meu Perfil"
+              active={activeSection === 'profile'}
+              onClick={() => navigate('/profile')}
             />
             <CityIcon
               icon={Users}
@@ -86,6 +88,12 @@ export const CityNavigation = () => {
               label="Explorar"
               active={activeSection === 'explore'}
               onClick={() => navigate('/explore')}
+            />
+            <CityIcon
+              icon={MessageSquare}
+              label="Mensagens"
+              active={activeSection === 'messages'}
+              onClick={() => navigate('/messages')}
             />
             <CityIcon
               icon={BookOpen}
