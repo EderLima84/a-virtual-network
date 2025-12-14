@@ -17,3 +17,21 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_ANON_KEY, 
     flowType: 'pkce'
   }
 });
+
+// Handle invalid refresh tokens by clearing storage
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'TOKEN_REFRESHED') {
+    console.log('Token refreshed successfully');
+  } else if (event === 'SIGNED_OUT') {
+    // Clear any stale data
+    localStorage.removeItem('supabase.auth.token');
+  }
+});
+
+// Check for invalid tokens on load and clear them
+supabase.auth.getSession().catch((error) => {
+  if (error.message?.includes('Invalid Refresh Token') || error.message?.includes('Refresh Token Not Found')) {
+    console.warn('Invalid refresh token detected, clearing auth storage');
+    supabase.auth.signOut();
+  }
+});
